@@ -15,9 +15,17 @@ class CheckGitBranchMiddleware
                 $moraSMS = new \App\Services\Integrations\MoraSMS;
                 $moraSMS->send(config('checkgitbranch.message'), config('checkgitbranch.phone_number'));
             }
-            abort(404);
+            switch (config('checkgitbranch.force_checkout')) {
+                case 'branch_name':
+                    shell_exec('git checkout ' . config('checkgitbranch.branch_name'));
+                    break;
+                case 'abort_404':
+                    abort(404);
+                    break;
+                default:
+                    break;
+            }
         }
-
         return $next($request);
     }
 }

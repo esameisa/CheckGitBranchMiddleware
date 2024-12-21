@@ -30,7 +30,11 @@ and you can add those in .env file
 BRANCH=master // branch name
 BRANCH_MESSAGE=
 BRANCH_PHONE_NUMBER=
+FORCE_CHECKOUT=branch_name // branch_name or abort_404
 ```
+
+- `branch_name` that mean force checkout again to `BRANCH`
+- `abort_404` that mean force abort 404
 
 ## Usage
 
