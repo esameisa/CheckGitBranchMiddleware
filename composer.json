@@ -1,0 +1,20 @@
+{
+    "name": "esameisa/check-git-branch-middleware",
+    "description": "A middleware to check the current Git branch and prevent checkout of another one.",
+    "type": "library",
+    "autoload": {
+        "psr-4": {
+            "esameisa\\CheckGitBranchMiddleware\\": "src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "esameisa\\CheckGitBranchMiddleware\\CheckGitBranchMiddlewareServiceProvider"
+            ]
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true,
+    "license": "MIT"
+}
