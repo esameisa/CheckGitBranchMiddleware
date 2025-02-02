@@ -16,7 +16,6 @@ return [
      */
     'message' => env('BRANCH_MESSAGE', 'Dangerous behaviour, someone try to change branch on live!'),
 
-
     /*
      * `branch_name` that mean force checkout again to `BRANCH`
      * `abort_404` that mean force abort 404
