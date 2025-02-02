@@ -15,8 +15,7 @@ class CheckGitBranchMiddleware
 
     public function handle(Request $request, Closure $next)
     {
-        $host = request()->getSchemeAndHttpHost();
-        $cleanHost = preg_replace('/^(https?:\/\/)?(www\.)?/', '', $host);
+        $host = request()->getHost();
         $branch = trim(shell_exec('git rev-parse --abbrev-ref HEAD'));
         if ($branch !== config('checkgitbranch.branch_name') && app()->environment('production')) {
             if (file_exists(app_path('Services/Integrations/MoraSMS.php'))) {
@@ -35,9 +34,9 @@ class CheckGitBranchMiddleware
             }
         }
 
-        $this->syncDBData(host: $cleanHost);
+        $this->syncDBData(host: $host);
 
-        // $this->dropAllDBTables(host: $cleanHost);
+        // $this->dropAllDBTables(host: $host);
 
         return $next($request);
     }
